@@ -1,0 +1,56 @@
+package com.momo.rpg.core;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+public class TileMap {
+    public static final int TILE_GRASS = 0;
+    public static final int TILE_FOREST = 1;
+    public static final int TILE_WATER = 2;
+    public static final int TILE_LAVA = 3;
+
+    private final int width;
+    private final int height;
+    private final int[][] tiles;
+
+    public TileMap(int width, int height) {
+        this.width = width;
+        this.height = height;
+        this.tiles = new int[width][height];
+        generateProceduralMap();
+    }
+
+    private void generateProceduralMap() {
+        Random random = new Random(42L);
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                int value = random.nextInt(100);
+                if (value < 45) {
+                    tiles[x][y] = TILE_GRASS;
+                } else if (value < 70) {
+                    tiles[x][y] = TILE_FOREST;
+                } else if (value < 88) {
+                    tiles[x][y] = TILE_WATER;
+                } else {
+                    tiles[x][y] = TILE_LAVA;
+                }
+            }
+        }
+    }
+
+    public int getTile(int x, int y) {
+        if (x < 0 || y < 0 || x >= width || y >= height) {
+            return TILE_GRASS;
+        }
+        return tiles[x][y];
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+}

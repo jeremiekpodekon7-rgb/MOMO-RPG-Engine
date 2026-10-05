@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#1E3A5F</color>
+    <color name="colorPrimaryDark">#0F213A</color>
+    <color name="colorAccent">#F9C74F</color>
+    <color name="bgDark">#111827</color>
+    <color name="tileGround">#2C6E49</color>
+    <color name="tileWater">#1D4E89</color>
+    <color name="tileGrass">#3A9D6B</color>
+    <color name="tileForest">#5D8C3A</color>
+    <color name="uiPanel">#121826</color>
+</resources>
