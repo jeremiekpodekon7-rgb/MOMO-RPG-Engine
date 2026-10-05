@@ -1,0 +1,193 @@
+package com.momo.rpg;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.RectF;
+import android.util.AttributeSet;
+import android.view.MotionEvent;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+
+import com.momo.rpg.combat.BattleSystem;
+import com.momo.rpg.core.Entity;
+import com.momo.rpg.core.GameEngine;
+import com.momo.rpg.core.TileMap;
+import com.momo.rpg.core.Vector2;
+
+public class GameView extends SurfaceView implements Runnable, SurfaceHolder.Callback {
+    private Thread gameThread;
+    private volatile boolean running;
+    private final SurfaceHolder holder;
+    private final Paint paint;
+    private final GameEngine engine;
+    private final BattleSystem battleSystem;
+
+    public GameView(Context context) {
+        super(context);
+        this.holder = getHolder();
+        this.paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        this.engine = new GameEngine();
+        this.battleSystem = new BattleSystem();
+        this.holder.addCallback(this);
+        setFocusable(true);
+    }
+
+    public GameView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        this.holder = getHolder();
+        this.paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        this.engine = new GameEngine();
+        this.battleSystem = new BattleSystem();
+        this.holder.addCallback(this);
+        setFocusable(true);
+    }
+
+    public void start() {
+        running = true;
+        if (gameThread == null) {
+            gameThread = new Thread(this, "MomoGameLoop");
+            gameThread.start();
+        }
+    }
+
+    public void pause() {
+        running = false;
+        try {
+            if (gameThread != null) {
+                gameThread.join(200);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        gameThread = null;
+    }
+
+    @Override
+    public void run() {
+        long lastTime = System.nanoTime();
+        final double nsPerTick = 1_000_000_000.0 / 60.0;
+        double delta = 0;
+
+        while (running) {
+            long now = System.nanoTime();
+            delta += (now - lastTime) / nsPerTick;
+            lastTime = now;
+
+            while (delta >= 1) {
+                update();
+                delta -= 1;
+            }
+
+            drawFrame();
+        }
+    }
+
+    private void update() {
+        engine.update(1.0f / 60.0f);
+        battleSystem.tick(1.0f / 60.0f);
+    }
+
+    private void drawFrame() {
+        if (!holder.getSurface().isValid()) {
+            return;
+        }
+
+        Canvas canvas = holder.lockCanvas();
+        if (canvas == null) {
+            return;
+        }
+
+        canvas.drawColor(Color.rgb(16, 20, 30));
+
+        TileMap map = engine.getMap();
+        int tileSize = 72;
+        int offsetX = getWidth() / 2 - tileSize;
+        int offsetY = getHeight() / 2 - tileSize;
+
+        for (int y = 0; y < map.getHeight(); y++) {
+            for (int x = 0; x < map.getWidth(); x++) {
+                int tile = map.getTile(x, y);
+                int screenX = offsetX + (x - y) * (tileSize / 2);
+                int screenY = offsetY + (x + y) * (tileSize / 4);
+
+                paint.setColor(tileColor(tile));
+                paint.setStyle(Paint.Style.FILL);
+                canvas.drawRect(
+                        new RectF(screenX, screenY, screenX + tileSize, screenY + tileSize),
+                        paint
+                );
+
+                paint.setColor(Color.argb(90, 255, 255, 255));
+                paint.setStyle(Paint.Style.STROKE);
+                canvas.drawRect(
+                        new RectF(screenX, screenY, screenX + tileSize, screenY + tileSize),
+                        paint
+                );
+            }
+        }
+
+        for (Entity entity : engine.getEntities()) {
+            Vector2 pos = entity.getPosition();
+            int screenX = offsetX + (pos.x - pos.y) * (tileSize / 2);
+            int screenY = offsetY + (pos.x + pos.y) * (tileSize / 4);
+
+            paint.setColor(entity.getColor());
+            canvas.drawCircle(screenX + tileSize / 2, screenY + tileSize / 3, 18, paint);
+
+            paint.setColor(Color.WHITE);
+            paint.setTextSize(24);
+            canvas.drawText(entity.getName(), screenX, screenY + tileSize, paint);
+        }
+
+        paint.setColor(Color.argb(180, 10, 15, 20));
+        canvas.drawRoundRect(20, 20, getWidth() - 20, 180, 25, 25, paint);
+
+        paint.setColor(Color.WHITE);
+        paint.setTextSize(30);
+        canvas.drawText("MOMO RPG", 45, 70, paint);
+        paint.setTextSize(24);
+        canvas.drawText("ATB: " + battleSystem.getAtbStatus(), 45, 110, paint);
+        canvas.drawText("Joueur: " + engine.getPlayer().getName() + " | HP " + engine.getPlayer().getHp(), 45, 145, paint);
+
+        holder.unlockCanvasAndPost(canvas);
+    }
+
+    private int tileColor(int tile) {
+        switch (tile) {
+            case TileMap.TILE_GRASS:
+                return Color.rgb(49, 140, 89);
+            case TileMap.TILE_FOREST:
+                return Color.rgb(89, 139, 56);
+            case TileMap.TILE_WATER:
+                return Color.rgb(28, 84, 158);
+            case TileMap.TILE_LAVA:
+                return Color.rgb(186, 73, 32);
+            default:
+                return Color.rgb(114, 118, 129);
+        }
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            engine.onPlayerTap((int) event.getX(), (int) event.getY());
+        }
+        return true;
+    }
+
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+        engine.initializeWorld();
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        pause();
+    }
+}

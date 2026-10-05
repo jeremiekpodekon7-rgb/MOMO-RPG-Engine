@@ -1,0 +1,54 @@
+package com.momo.rpg.core;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+public class GameEngine {
+    private final TileMap map;
+    private final List<Entity> entities;
+    private final Entity player;
+    private final Random random;
+
+    public GameEngine() {
+        this.map = new TileMap(20, 20);
+        this.entities = new ArrayList<>();
+        this.random = new Random();
+        this.player = new Entity("Kamel", 10, 10);
+        populateWorld();
+    }
+
+    private void populateWorld() {
+        entities.add(player);
+        for (int i = 0; i < 12; i++) {
+            Entity enemy = new Entity("Monstre " + (i + 1), random.nextInt(18), random.nextInt(18));
+            enemy.setColor(0xFFDD4F4F);
+            entities.add(enemy);
+        }
+    }
+
+    public void initializeWorld() {
+        // futur: villes, guildes, plansètes, PNJ, donjons, monde interplanétaire
+    }
+
+    public void update(float deltaSeconds) {
+        // futur: ATB, IA, déplacements, gestion des quêtes, effets de magie
+    }
+
+    public void onPlayerTap(int x, int y) {
+        // futur: déplacement tactique, interaction PNJ, ouverture d'inventaire
+        player.move(1, 0);
+    }
+
+    public TileMap getMap() {
+        return map;
+    }
+
+    public List<Entity> getEntities() {
+        return entities;
+    }
+
+    public Entity getPlayer() {
+        return player;
+    }
+}
